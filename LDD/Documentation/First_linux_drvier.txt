@@ -1,0 +1,30 @@
+This is the first linux device driver
+
+License
+Author
+Module Description
+Module Version
+
+These pieces of information are present in the Linux/module.h as macros.
+
+License:
+	MODULE_LICENSE("GPL");
+	MODULE_LICENSE("GPL v2");
+	MODULE_LICENSE("Dual BSD/GPL");
+
+Note: It is not strictly necessary, but your module really should specify which license applies to its code.
+
+Author:
+
+	MODULE_AUTHOR("Author");
+
+Module Description:
+	MODULE_DESCRIPTION("A sample driver");
+
+Module Version:
+	Version of form [<epoch>:]<version>[-<extra-version>].
+
+	MODULE_VERSION("2:1.0");
+
+
+
