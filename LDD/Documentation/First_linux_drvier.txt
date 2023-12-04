@@ -26,5 +26,116 @@ Module Version:
 
 	MODULE_VERSION("2:1.0");
 
+USERSPACE vs KERNELSPACE
+1.	Module runs in the kernelspacewhere as application runs in the USERSPACE
+2.  Kernel executes in the highest level where everything is allowed and application executes at the lowest level, 
+		where the processor regulates the direct access to hardware and memory.
+3.	System calls are interface to kernelspace and userspace.
+4.	Kernel code executing a System call is working in the context of the process-> it operates on behalf of calling process
+		and is able process data in the process's address space.
+5.Code that handles interrupts, on the other hand,is asynchronuous with respect ot process and is not related to any particular process.
+6. Some Functions in the module are executed as part of the system calls, and some are in charge of interrupt handling.
 
+INTRODUCTION TO CHARACTER DRIVER
+		1. A character device is one that can access as a stream of bytes like a file.
+		2. The difference between a character device and regular file is that you can always move back and forth in the regular file,
+		whereas most char devices are just data channels, which you can only access sequentially.
+		3.Character devices are accessed through names in the file system called device files.
+
+MAJOR NUMBER and MINOR NUMBER
+		1. The major number identifies the driver associated with the device. Kernel uses the major number to invoke the driver.
+		2. The minor is used by the driver to check exactly which device is refered to.
+		3.	Within the Kernel, the dev_type (defined in <linux/types.h>) is used to hold device numbers- both the major and minor parts.
+
+
+
+ALLOCATING MAJOR AND MINOR NUMBER:
+		1. We can allocate the major and minor numbers in two ways.
+			
+			Statically:
+					1. int register_chrdev_region(dev_t first, unsigned int count, char *name);
+					The dev_t type(defined in <linux/types.h>) is used to hold device numbers--both the major and minor parts.
+					2. If you want to create the dev_t structure variable for your major and minor numbers:
+							MKDEV(int major, int minor);
+					To get your major and minor number from dev_t, use below method.
+							MAJOR(dev_t dev);
+							MINOR(dev_t dev);
+			
+			Dynamically:
+					int alloc_chrdev_region( dev_t *dev, unsigned int first minor, unsigned int count, char *name);
+
+
+How Application communication with the hardware Device?
+
+			1. First application will open the device file, which is created by Device Driver which we can create in two ways:
+					$ Manual: mknod -m 666 /dev/char_device 246 o
+					$ Automatically:
+					$ Include the header file linux/device.h and linux/kdev_t.h
+					$ Create the struct class
+							struct class *class_create (struct module *owner, const char *name);
+					$ Create Device with the class.
+							struct device *device_create (struct *class, struct device *parent, dev_t dev, const char*fmt, ..)
+					
+			2. You can destroy the device using device_destroy().
+					void device_destroy (struct class *class, dev_t devt);
+
+
+
+
+Character Driver Registration
+			1. If we want to read, write, open or close, we need to register some  structure to the driver.
+			2. The kernel uses structure of type  struct cdev to represent char device internally.
+			3. Before the kernel invokes your device's operations, you must allocate and register this structure.
+			4. In order to use struct cdev, your code should include <linux/cdev.h>, where structure and associated helper functions are defined.
+
+
+			There are two ways of allocating and intializing one of these structures.
+					--	Use the cdev_alloc() function call, i.e dynamic allocation.
+					--	Use the cdev_init() function call, i.e. static allocation.
+			Once intiallized, use the cdev_add() function to register the character driver with the kernel.
+					--	int cdev_add(struct *cdev, dev_t num, unsigned int count);
+			Use the cdev_del() function to unregister the character driver from the kernel.
+					--	void cdev_del(struct cdev *dev);
+			Option 1(cdev_alloc)
+					If you wish to obtain a cdev structure at runtime, you can do the following:
+							--	struct cdev *my_cdev=cdev_alloc();
+							--	my_cdev->ops = &my_fops;
+							--	my_cdev->owner = THIS_MODULE;
+
+			Option 2 (cdev_init):
+					void cdev_init(struct cdev *cdev, struct file_operations *fops);
+
+
+			The following sample show the usage of the cdev_init() function:
+					struct cdev my_dev;
+					cdev_init(&my_cdev, &my_fops);
+					my_cdev_owner =  THIS_MODULE;
+
+
+Linux Character Device Driver Demonstration
+
+			we already know that in linux everything is a file, so we will implement two applications:
+					User space application. (User-space)
+					Kernelspace program.(Driver)
+			Functions used in the  drivers:
+					-- Kmalloc():	Used to allocate the memory in the kernel space.
+									void *kmalloc(size_t size, gfp_t flags);
+
+					-- kfree():		Used to free the previously allocated memory.
+									void kfree(const void *objp)
+					
+					-- copy_to_user(): Copy the block of data from kernel space to user space.
+									unsigned long copy_to_user(void __user *to, const void *from, unsigned long count);
+					
+					--	copy_from_user():	Copy the block of data from user space to kernel space.
+									unsigned long copy_from_user(void *to, const void __user *from, unsigned long count);
+					
+
+
+
+File operations functions:
+					static int char_open(struct inode *inode, struct file *file);
+					struct int char_release(struct inode *inode, struct file *file);
+					static ssize_t char_read(struct file *filp, char __user *buf, size_t len, loff_t* off);
+					static ssize_t char_write(struct file *flip, const char *buf, size_t len, loff_t* off);
 
